@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DiSMS - Warehouse Operations & Financial Overview</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-surface: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-blue: #38bdf8;
+            --accent-green: #34d399;
+            --accent-amber: #fbbf24;
+            --accent-purple: #c084fc;
+            --accent-rose: #f43f5e;
+            --border-color: #475569;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            padding: 2rem 1.5rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .brand-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--text-primary);
+            background-color: var(--bg-surface);
+        }
+
+        /* KPI Cards Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.25rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        .kpi-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.35rem;
+        }
+
+        .kpi-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .kpi-subtext {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.35rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Order Status Grid */
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+
+        .status-card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.85rem;
+            text-align: center;
+        }
+
+        .status-num {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+        }
+
+        .status-name {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+            text-transform: capitalize;
+        }
+
+        /* ABC Stock Grid */
+        .abc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .abc-card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.25rem;
+        }
+
+        .abc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .badge-abc {
+            padding: 0.2rem 0.6rem;
+            border-radius: 9999px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .badge-a { background: rgba(52, 211, 153, 0.15); color: var(--accent-green); border: 1px solid var(--accent-green); }
+        .badge-b { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); border: 1px solid var(--accent-blue); }
+        .badge-c { background: rgba(251, 191, 36, 0.15); color: var(--accent-amber); border: 1px solid var(--accent-amber); }
+
+        .progress-bar-bg {
+            background-color: var(--bg-card);
+            border-radius: 9999px;
+            height: 8px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 9999px;
+        }
+
+        /* Ledger Table */
+        .table-card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        .overview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .overview-table th, .overview-table td {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(71, 85, 105, 0.5);
+        }
+
+        .overview-table th {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .empty-state {
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1 class="brand-title">DiSMS Executive Overview</h1>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">Warehouse Operations, ABC Inventory Distribution & Accounts Ledger</p>
+            </div>
+            <nav class="nav-links">
+                <a href="{% url 'dashboard:overview' %}" class="nav-link active">Overview</a>
+                <a href="{% url 'dashboard:pending-orders' %}" class="nav-link">Pending Approvals</a>
+            </nav>
+        </header>
+
+        <!-- KPI Summary Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-label">Total System Orders</div>
+                <div class="kpi-value">{{ total_orders }}</div>
+                <div class="kpi-subtext">Across all fulfillment stages</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Stock On Hand (Units)</div>
+                <div class="kpi-value" style="color: var(--accent-blue);">{{ total_stock_units }}</div>
+                <div class="kpi-subtext">Classified across ABC racks</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Total Billed Volume</div>
+                <div class="kpi-value" style="color: var(--accent-green);">${{ total_billed_amount|floatformat:2 }}</div>
+                <div class="kpi-subtext">Invoiced order totals</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Accounts Receivable</div>
+                <div class="kpi-value" style="color: var(--accent-purple);">${{ total_outstanding_receivables|floatformat:2 }}</div>
+                <div class="kpi-subtext">Total store ledger balances</div>
+            </div>
+        </div>
+
+        <!-- Order Counts by Status -->
+        <section>
+            <h2 class="section-title">Order Fulfillment Pipeline</h2>
+            <div class="status-grid">
+                {% for item in order_status_summary %}
+                    <div class="status-card">
+                        <div class="status-num">{{ item.count }}</div>
+                        <div class="status-name">{{ item.status_label }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Stock-on-Hand grouped by ABC Class -->
+        <section>
+            <h2 class="section-title">Stock-On-Hand by ABC Velocity Classification</h2>
+            <div class="abc-grid">
+                {% for item in stock_abc_summary %}
+                    <div class="abc-card">
+                        <div class="abc-header">
+                            <div>
+                                <span class="badge-abc badge-{{ item.abc_class|lower }}">Class {{ item.abc_class }}</span>
+                                <h3 style="font-size: 1rem; margin-top: 0.35rem;">{{ item.label }}</h3>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="font-size: 1.4rem; font-weight: 700;">{{ item.quantity }}</span>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">units</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary); display: flex; justify-content: space-between;">
+                            <span>Share of Warehouse Inventory</span>
+                            <strong>{{ item.percent }}%</strong>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill {% if item.abc_class == 'A' %}badge-a{% elif item.abc_class == 'B' %}badge-b{% else %}badge-c{% endif %}"
+                                 style="width: {{ item.percent }}%; background-color: {% if item.abc_class == 'A' %}var(--accent-green){% elif item.abc_class == 'B' %}var(--accent-blue){% else %}var(--accent-amber){% endif %};">
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Store Accounts & Running Ledger Balances -->
+        <section>
+            <h2 class="section-title">Store Accounts & Running Ledger Balances</h2>
+            <div class="table-card">
+                {% if store_ledgers %}
+                    <table class="overview-table">
+                        <thead>
+                            <tr>
+                                <th>Store ID</th>
+                                <th>Store / Customer Name</th>
+                                <th>Username</th>
+                                <th>Last Transaction</th>
+                                <th>Last Amount</th>
+                                <th>Updated At</th>
+                                <th>Current Running Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for store in store_ledgers %}
+                                <tr>
+                                    <td>#{{ store.store_id }}</td>
+                                    <td><strong>{{ store.store_name }}</strong></td>
+                                    <td style="color: var(--text-secondary);">@{{ store.username }}</td>
+                                    <td>
+                                        <span style="text-transform: capitalize; color: {% if store.last_type == 'charge' %}var(--accent-amber){% else %}var(--accent-green){% endif %};">
+                                            {{ store.last_type }}
+                                        </span>
+                                    </td>
+                                    <td>${{ store.last_amount }}</td>
+                                    <td style="color: var(--text-secondary); font-size: 0.85rem;">{{ store.last_updated|date:"Y-m-d H:i" }}</td>
+                                    <td>
+                                        <strong style="color: var(--accent-purple); font-size: 1rem;">
+                                            ${{ store.current_balance }}
+                                        </strong>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="empty-state">
+                        <h3>No Store Ledger Accounts Recorded</h3>
+                        <p>Invoiced orders will automatically populate store running balances here.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+</body>
+</html>

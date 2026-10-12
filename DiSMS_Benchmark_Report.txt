@@ -1,0 +1,71 @@
+
+================================================================================
+          DiSMS BENCHMARK REPORT: PICKING OPTIMIZATION ALGORITHM
+================================================================================
+Generated: 2026-10-12 00:19:14
+Environment: Antigravity IDE / Django 6.0 Backend / PostgreSQL
+Algorithm: Nearest-Neighbour + 2-Opt Local Search vs. FIFO Sequence Baseline
+
+--------------------------------------------------------------------------------
+1. EXECUTIVE SUMMARY & STATISTICAL METRICS
+--------------------------------------------------------------------------------
+Sample Size (Orders Tested)      : 50
+Total Pick Waypoints Executed    : 673
+Total Baseline Distance (FIFO)   : 30,756.41 meters
+Total Optimized Distance (NN+2Opt): 12,428.64 meters
+Net Distance Saved               : 18,327.77 meters
+
+Overall Aggregate Improvement    : 59.59%
+Average Order Improvement        : 54.79%
+Median Order Improvement         : 59.90%
+Minimum Order Improvement        : 1.80%
+Maximum Order Improvement        : 72.19%
+Standard Deviation               : 15.37%
+
+--------------------------------------------------------------------------------
+2. DETAILED SAMPLE RESULTS (Top 25 Representative Orders)
+--------------------------------------------------------------------------------
+Order ID       | Items | Steps | Baseline (m) | Optimized (m) | Saved (m) | Improv %
+--------------------------------------------------------------------------------
+BENCH-ORD-001  |    17 |    17 |       816.86 |        280.14 |    536.72 |   65.71%
+BENCH-ORD-002  |    10 |    10 |       462.73 |        251.30 |    211.43 |   45.69%
+BENCH-ORD-003  |    16 |    16 |       596.82 |        275.19 |    321.63 |   53.89%
+BENCH-ORD-004  |    13 |    13 |       714.63 |        258.38 |    456.25 |   63.84%
+BENCH-ORD-005  |    10 |    10 |       494.90 |        252.73 |    242.17 |   48.93%
+BENCH-ORD-006  |    14 |    14 |       735.62 |        243.60 |    492.02 |   66.89%
+BENCH-ORD-007  |     6 |     6 |       345.58 |        205.89 |    139.69 |   40.42%
+BENCH-ORD-008  |    17 |    17 |       815.70 |        254.97 |    560.73 |   68.74%
+BENCH-ORD-009  |    19 |    19 |       838.22 |        278.87 |    559.35 |   66.73%
+BENCH-ORD-010  |     7 |     7 |       334.73 |        219.53 |    115.20 |   34.42%
+BENCH-ORD-011  |    19 |    19 |       753.65 |        261.84 |    491.81 |   65.26%
+BENCH-ORD-012  |     6 |     6 |       182.58 |        135.78 |     46.80 |   25.63%
+BENCH-ORD-013  |     7 |     7 |       342.85 |        218.99 |    123.86 |   36.13%
+BENCH-ORD-014  |    12 |    12 |       644.48 |        254.28 |    390.20 |   60.54%
+BENCH-ORD-015  |    16 |    16 |       761.63 |        266.92 |    494.71 |   64.95%
+BENCH-ORD-016  |    16 |    16 |       800.73 |        264.89 |    535.84 |   66.92%
+BENCH-ORD-017  |    19 |    19 |       753.13 |        273.67 |    479.46 |   63.66%
+BENCH-ORD-018  |    18 |    18 |       796.09 |        247.46 |    548.63 |   68.92%
+BENCH-ORD-019  |    20 |    20 |       992.77 |        282.09 |    710.68 |   71.59%
+BENCH-ORD-020  |    15 |    15 |       674.14 |        240.38 |    433.76 |   64.34%
+BENCH-ORD-021  |    11 |    11 |       465.90 |        248.44 |    217.46 |   46.68%
+BENCH-ORD-022  |    14 |    14 |       794.48 |        234.13 |    560.35 |   70.53%
+BENCH-ORD-023  |    14 |    14 |       535.85 |        262.65 |    273.20 |   50.98%
+BENCH-ORD-024  |     8 |     8 |       498.55 |        248.20 |    250.35 |   50.22%
+BENCH-ORD-025  |     6 |     6 |       324.84 |        213.76 |    111.08 |   34.20%
+... [25 additional orders evaluated and included in aggregate totals]
+--------------------------------------------------------------------------------
+3. VIVA PRESENTATION KEY TAKEAWAYS
+--------------------------------------------------------------------------------
+[+] Statistically Significant Transit Reduction:
+    The Nearest-Neighbour + 2-opt routing heuristic delivers an average of
+    54.79% reduction in physical transit distance over arbitrary FIFO sequences.
+
+[+] Picker Fatigue & Operational Efficiency:
+    Across just 50 representative orders, the algorithm eliminated 18,327.77 meters
+    of redundant zigzag travel across the 4 warehouse zones (AX, BX, CX, CZ).
+
+[+] Non-Blocking Concurrency & ACID Integrity:
+    All 50 synthetic orders executed complete FEFO batch deductions and dynamic
+    2D coordinate routing without lock contention or deadlock exceptions.
+================================================================================
+
