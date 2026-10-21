@@ -325,3 +325,26 @@ class ConcurrentBillingLedgerTests(TransactionTestCase):
         balances = [e.balance_after for e in entries]
         self.assertEqual(balances, [Decimal('100.00'), Decimal('200.00'), Decimal('300.00'), Decimal('400.00')])
 
+
+class InvoicePDFServiceTests(TestCase):
+    def setUp(self):
+        self.store = User.objects.create_user(username='pdf_store', password='password123')
+        self.product = Product.objects.create(sku='SKU-PDF-01', name='PDF Test Valve')
+        self.order = Order.objects.create(order_number='ORD-PDF-001', status='billed', store=self.store)
+        self.invoice = Invoice.objects.create(order=self.order, invoice_total=Decimal('250.00'))
+        self.invoice_item = InvoiceItem.objects.create(
+            invoice=self.invoice,
+            sku=self.product,
+            unit_price=Decimal('125.00'),
+            quantity=2,
+            line_total=Decimal('250.00')
+        )
+
+    def test_generate_invoice_pdf_creates_valid_pdf(self):
+        from orders.services.pdf_service import generate_invoice_pdf
+        pdf_bytes = generate_invoice_pdf(self.invoice)
+        self.assertIsInstance(pdf_bytes, bytes)
+        self.assertTrue(len(pdf_bytes) > 500)
+        self.assertTrue(pdf_bytes.startswith(b'%PDF'))
+
+

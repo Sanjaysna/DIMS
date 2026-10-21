@@ -1,5 +1,6 @@
 from django.db import transaction
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -18,7 +19,7 @@ from inventory.services.slotting_algo import (
     SlottingAlgorithmError,
     assign_rack,
 )
-from orders.models import Order
+from orders.models import Order, OrderItem
 
 
 
@@ -32,6 +33,7 @@ class StockReceiveAPIView(APIView):
     assignment via the slotting algorithm (priority tiers & capacity checks),
     and creates the StockBatch record with concurrency protection.
     """
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         serializer = StockBatchReceiveSerializer(data=request.data)
@@ -119,6 +121,7 @@ class OrderPickPathAPIView(APIView):
     Returns the optimized sequence of PickPathStep records (Nearest-Neighbour + 2-opt)
     along with coordinates and baseline comparison metrics for Flutter client display.
     """
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, order_id, *args, **kwargs):
         # Allow lookup by numerical ID or string order_number
@@ -175,6 +178,7 @@ class ReturnCategorizeAPIView(APIView):
       Creates a StockWriteoff record instead.
     Marks Return status as 'processed'.
     """
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, return_id, *args, **kwargs):
         serializer = ReturnCategorizeSerializer(data=request.data)
@@ -286,3 +290,164 @@ class ReturnCategorizeAPIView(APIView):
             )
 
 
+class InventoryScanAPIView(APIView):
+    """
+    Mobile barcode / QR scan verification endpoint:
+    POST /api/v1/inventory/scan/
+    Payload: {"sku": "string", "rack_id": "string"}
+
+    Validates whether the scanned SKU exists slotted on the specified rack
+    within an active StockBatch. Returns 200 OK {"status": "verified"} or 404 Not Found.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        sku = request.data.get('sku')
+        rack_id = request.data.get('rack_id')
+
+        if not sku or not rack_id:
+            return Response(
+                {"error": "Both 'sku' and 'rack_id' are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        sku_str = str(sku).strip()
+        rack_str = str(rack_id).strip()
+
+        exists = StockBatch.objects.filter(
+            sku_id=sku_str,
+            rack_id=rack_str
+        ).exists()
+
+        if not exists:
+            exists = StockBatch.objects.filter(
+                sku__sku__iexact=sku_str,
+                rack__rack_id__iexact=rack_str
+            ).exists()
+
+        if exists:
+            return Response({"status": "verified"}, status=status.HTTP_200_OK)
+
+
+        return Response(
+            {
+                "error": f"SKU '{sku}' was not found on rack '{rack_id}'.",
+                "sku": sku,
+                "rack_id": rack_id,
+            },
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+class ProductListAPIView(APIView):
+    """
+    GET /api/v1/products/
+    Returns product catalogue with aggregated available stock across all racks and batches.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        products = Product.objects.all().prefetch_related('stock_batches')
+        data = []
+        for p in products:
+            batches = p.stock_batches.all()
+            total_stock = sum(b.quantity for b in batches)
+            batch_data = [
+                {
+                    "batch_number": b.batch_number,
+                    "quantity": b.quantity,
+                    "expiry_date": str(b.expiry_date) if b.expiry_date else None,
+                    "rack_id": b.rack_id,
+                }
+                for b in batches
+            ]
+            data.append({
+                "sku": p.sku,
+                "name": p.name,
+                "description": p.description,
+                "abc_class": p.abc_class,
+                "xyz_class": p.xyz_class,
+                "available_stock": total_stock,
+                "batches": batch_data,
+            })
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class OrderListCreateAPIView(APIView):
+    """
+    GET /api/v1/orders/
+    Lists recent orders with their status and pick path readiness.
+
+    POST /api/v1/orders/
+    Payload: {"items": [{"sku": "SKU-...", "quantity": int}]}
+    Creates a new Order in 'pending_approval' status.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        orders = Order.objects.all().order_by('-order_date')[:50]
+        data = []
+        for o in orders:
+            has_pick = hasattr(o, 'pick_path')
+            data.append({
+                "id": o.id,
+                "order_number": o.order_number,
+                "status": o.status,
+                "order_date": o.order_date.isoformat(),
+                "item_count": o.items.count(),
+                "has_pick_path": has_pick,
+            })
+        return Response(data, status=status.HTTP_200_OK)
+
+    def post(self, request, *args, **kwargs):
+        items_data = request.data.get('items', [])
+        if not items_data or not isinstance(items_data, list):
+            return Response(
+                {"error": "A non-empty 'items' list is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        with transaction.atomic():
+            import uuid
+            order_number = f"ORD-{int(timezone.now().timestamp())}-{uuid.uuid4().hex[:4].upper()}"
+            store_user = request.user if request.user.is_authenticated else None
+
+            order = Order.objects.create(
+                order_number=order_number,
+                status='pending_approval',
+                store=store_user,
+            )
+
+            created_items = []
+            for item in items_data:
+                sku = item.get('sku')
+                qty = item.get('quantity', 1)
+                try:
+                    product = Product.objects.get(sku=sku)
+                except Product.DoesNotExist:
+                    return Response(
+                        {"error": f"Product with SKU '{sku}' does not exist."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                order_item = OrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    quantity=int(qty),
+                )
+                created_items.append({
+                    "sku": product.sku,
+                    "product_name": product.name,
+                    "quantity": order_item.quantity,
+                })
+
+        return Response(
+            {
+                "message": "Order created successfully and queued for approval.",
+                "order_id": order.id,
+                "order_number": order.order_number,
+                "status": order.status,
+                "items": created_items,
+            },
+            status=status.HTTP_201_CREATED
+        )

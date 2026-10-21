@@ -1,22 +1,33 @@
 from django.contrib import messages
-from django.shortcuts import redirect, render
+from django.contrib.auth.decorators import login_required
+from django.http import Http404, HttpResponse, HttpResponseForbidden
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.decorators import method_decorator
 from django.views import View
 
-from orders.models import Order
+from orders.models import Invoice, Order
 from orders.services.allocation_service import (
     AllocationLockError,
     InsufficientStockError,
     OrderStateError,
     approve_and_allocate_order,
 )
+from orders.services.pdf_service import generate_invoice_pdf
 
 
+
+@method_decorator(login_required, name='dispatch')
 class PendingOrdersDashboardView(View):
     """
     Manager Dashboard view to list pending orders and execute
     FEFO allocation and picking route optimization upon approval.
     """
     template_name = 'dashboard/pending_orders.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            return HttpResponseForbidden("Access denied. Staff privileges required.")
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
         pending_orders = (
@@ -77,6 +88,7 @@ class PendingOrdersDashboardView(View):
         return redirect('dashboard:pending-orders')
 
 
+@method_decorator(login_required, name='dispatch')
 class ManagerOverviewDashboardView(View):
     """
     Manager Overview Dashboard (/dashboard/overview/):
@@ -86,6 +98,11 @@ class ManagerOverviewDashboardView(View):
       3. List of Stores with their current running ledger balance
     """
     template_name = 'dashboard/overview.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            return HttpResponseForbidden("Access denied. Staff privileges required.")
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
         from django.contrib.auth import get_user_model
@@ -201,4 +218,31 @@ class ManagerOverviewDashboardView(View):
                 'total_billed_amount': total_billed_amount,
             }
         )
+
+
+@method_decorator(login_required, name='dispatch')
+class InvoiceDownloadView(View):
+    """
+    Downloads an Invoice as a rendered PDF document.
+    Endpoint: /dashboard/invoice/<id>/download/
+    Access restricted to authenticated staff users.
+    """
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            return HttpResponseForbidden("Access denied. Staff privileges required.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, id=None, *args, **kwargs):
+        inv_id = id or kwargs.get('id') or kwargs.get('pk') or kwargs.get('invoice_id')
+        if not str(inv_id).isdigit():
+            raise Http404(f"Invoice '{inv_id}' not found.")
+
+        invoice = get_object_or_404(Invoice, pk=int(inv_id))
+        pdf_bytes = generate_invoice_pdf(invoice)
+
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="invoice_{invoice.id}.pdf"'
+        return response
+
 
